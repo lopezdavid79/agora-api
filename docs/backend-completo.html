@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Ágora Argentina — Backend API - Documentación completa</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; max-width: 960px; margin: 0 auto; padding: 2rem; color: #1a1a1a; }
+  h1 { font-size: 2rem; border-bottom: 2px solid #005a9c; padding-bottom: 0.5rem; }
+  h2 { font-size: 1.5rem; border-bottom: 1px solid #ccc; padding-bottom: 0.3rem; margin-top: 2rem; }
+  h3 { font-size: 1.2rem; margin-top: 1.5rem; }
+  h4 { font-size: 1.1rem; margin-top: 1rem; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  th, td { border: 1px solid #666; padding: 0.5rem; text-align: left; vertical-align: top; }
+  th { background-color: #e8e8e8; font-weight: bold; }
+  code { background-color: #f0f0f0; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.9em; }
+  pre { background-color: #f5f5f5; padding: 1rem; border-left: 3px solid #005a9c; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  ul, ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+  li { margin: 0.3rem 0; }
+  .note { background: #e7f3ff; border-left: 4px solid #005a9c; padding: 0.5rem 1rem; margin: 1rem 0; }
+  .todo { background: #fff8e1; border-left: 4px solid #f9a825; padding: 0.5rem 1rem; margin: 1rem 0; }
+  @media print { body { padding: 0; font-size: 11pt; } pre { font-size: 9pt; } table { font-size: 10pt; } }
+</style>
+</head>
+<body>
+
+<header role="banner">
+  <h1>Ágora Argentina — Backend API</h1>
+  <p>API REST del programa <strong>Ágora Argentina</strong>, pensada para la gestión de candidatos con discapacidad visual. Construida con Express + Sequelize + MySQL.</p>
+</header>
+
+<nav role="navigation" aria-label="Índice de contenidos">
+  <h2>Índice</h2>
+  <ol>
+    <li><a href="#stack">Stack tecnológico</a></li>
+    <li><a href="#quickstart">Quick start</a></li>
+    <li><a href="#env">Variables de entorno</a></li>
+    <li><a href="#arquitectura">Arquitectura</a></li>
+    <li><a href="#api-endpoints">API — Endpoints</a>
+      <ol>
+        <li><a href="#api-auth">Auth</a></li>
+        <li><a href="#api-candidatos">Candidatos</a></li>
+        <li><a href="#api-documentos">Documentos</a></li>
+        <li><a href="#api-notificaciones">Notificaciones</a></li>
+        <li><a href="#api-health">Health</a></li>
+      </ol>
+    </li>
+    <li><a href="#basededatos">Base de datos</a></li>
+    <li><a href="#autenticacion">Autenticación y autorización</a></li>
+    <li><a href="#tests">Tests</a></li>
+    <li><a href="#pendientes">Pendientes</a></li>
+    <li><a href="#notas-tecnicas">Notas técnicas</a></li>
+  </ol>
+</nav>
+
+<main role="main">
+
+<!-- ============================================================ -->
+<section aria-labelledby="stack">
+<h2 id="stack">Stack tecnológico</h2>
+<table aria-label="Tecnologías utilizadas">
+  <thead>
+    <tr><th scope="col">Capa</th><th scope="col">Tecnología</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Runtime</td><td>Node.js</td></tr>
+    <tr><td>Framework</td><td>Express 4.19</td></tr>
+    <tr><td>ORM</td><td>Sequelize 6.37</td></tr>
+    <tr><td>Base de datos</td><td>MySQL 8+ (o MariaDB)</td></tr>
+    <tr><td>Autenticación</td><td>JWT + bcrypt</td></tr>
+    <tr><td>Validación</td><td>express-validator</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="quickstart">
+<h2 id="quickstart">Quick start</h2>
+<ol>
+  <li><strong>Clonar e instalar</strong>: <code>npm install</code></li>
+  <li><strong>Configurar</strong> <code>.env</code> con DB_HOST, DB_USER, DB_PASS, DB_NAME, JWT_SECRET</li>
+  <li><strong>Iniciar</strong>: <code>npm start</code> o <code>npm run dev</code> (nodemon)</li>
+</ol>
+<p>El servidor arranca en <code>http://localhost:3000</code> y crea las tablas automáticamente si no existen.</p>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="env">
+<h2 id="env">Variables de entorno (<code>.env</code>)</h2>
+<table aria-label="Variables de entorno del backend">
+  <thead>
+    <tr><th scope="col">Variable</th><th scope="col">Requerida</th><th scope="col">Default</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>DB_HOST</code></td><td>Sí</td><td>localhost</td><td>Host de MySQL</td></tr>
+    <tr><td><code>DB_PORT</code></td><td>Sí</td><td>3306</td><td>Puerto de MySQL</td></tr>
+    <tr><td><code>DB_NAME</code></td><td>Sí</td><td>—</td><td>Nombre de la base de datos</td></tr>
+    <tr><td><code>DB_USER</code></td><td>Sí</td><td>—</td><td>Usuario de MySQL</td></tr>
+    <tr><td><code>DB_PASS</code></td><td>No</td><td>—</td><td>Contraseña de MySQL</td></tr>
+    <tr><td><code>JWT_SECRET</code></td><td>Sí</td><td>—</td><td>Secreto para firmar tokens JWT</td></tr>
+    <tr><td><code>JWT_EXPIRES_IN</code></td><td>No</td><td>8h</td><td>Duración del token (ej: 8h, 7d)</td></tr>
+    <tr><td><code>FRONTEND_URL</code></td><td>No</td><td>http://localhost:5173</td><td>Origen permitido por CORS</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="arquitectura">
+<h2 id="arquitectura">Arquitectura</h2>
+<pre><code>src/
+├── server.js                  # Punto de entrada
+├── app.js                     # Configuración de Express (middlewares, rutas)
+├── config/
+│   └── database.js            # Conexión Sequelize a MySQL
+├── models/
+│   ├── index.js               # Define modelos + asociaciones
+│   ├── Usuario.js             # Modelo de usuarios
+│   └── CandidatoPerfil.js     # Modelo de perfiles de candidatos
+├── controllers/
+│   ├── auth.controller.js     # Login, datos del usuario logueado
+│   ├── candidatos.controller.js  # Perfil, completitud
+│   └── password.controller.js # Cambio de contraseña
+├── middlewares/
+│   └── auth.middleware.js     # Verificar JWT + autorización por rol
+└── routes/
+    ├── auth.routes.js         # /api/auth/*
+    ├── candidatos.routes.js   # /api/candidatos/*
+    ├── documentos.routes.js   # /api/documentos/*
+    └── notificaciones.routes.js # /api/notificaciones/*</code></pre>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="api-endpoints">
+<h2 id="api-endpoints">API — Endpoints</h2>
+
+<!-- Auth -->
+<section aria-labelledby="api-auth">
+<h3 id="api-auth">Auth — <code>/api/auth</code></h3>
+<table aria-label="Endpoints de autenticación">
+  <thead>
+    <tr><th scope="col">Método</th><th scope="col">Ruta</th><th scope="col">Auth</th><th scope="col">Roles</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>POST</td><td><code>/api/auth/login</code></td><td>❌</td><td>—</td><td>Iniciar sesión (email + password)</td></tr>
+    <tr><td>GET</td><td><code>/api/auth/me</code></td><td>✅</td><td>Todos</td><td>Datos del usuario logueado</td></tr>
+    <tr><td>PUT</td><td><code>/api/auth/cambiar-password</code></td><td>✅</td><td>Todos</td><td>Cambiar contraseña</td></tr>
+    <tr><td>POST</td><td><code>/api/auth/logout</code></td><td>❌</td><td>—</td><td>Cerrar sesión (solo mensaje)</td></tr>
+  </tbody>
+</table>
+
+<h4>POST /api/auth/login</h4>
+<p><strong>Body:</strong></p>
+<pre><code>{
+  "email": "candidato@ejemplo.com",
+  "password": "miPassword123"
+}</code></pre>
+
+<p><strong>Respuesta 200 (exitosa):</strong></p>
+<pre><code>{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "usuario": {
+    "id": 1,
+    "email": "candidato@ejemplo.com",
+    "rol": "Candidato",
+    "nombre": "Sandra",
+    "apellido": "Polutranka",
+    "estadoPerfil": "Pendiente"
+  }
+}</code></pre>
+
+<p><strong>Errores posibles:</strong></p>
+<ul>
+  <li><strong>400</strong> — validación (email inválido o password vacío)</li>
+  <li><strong>401</strong> — credenciales incorrectas</li>
+  <li><strong>403</strong> — cuenta deshabilitada</li>
+</ul>
+
+<div class="note" role="note" aria-label="Nota sobre el token">
+  <p><strong>Nota:</strong> El token JWT incluye <code>id</code>, <code>email</code> y <code>rol</code>. Se envía como <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+</div>
+
+<h4>GET /api/auth/me</h4>
+<p>Requiere token. Devuelve el usuario completo (sin password) con su perfil asociado.</p>
+
+<h4>PUT /api/auth/cambiar-password</h4>
+<p>Requiere token.</p>
+<p><strong>Body:</strong></p>
+<pre><code>{
+  "passwordActual": "vieja123",
+  "passwordNueva": "NuevaSegura456"
+}</code></pre>
+<p><strong>Requisitos de la nueva contraseña:</strong></p>
+<ul>
+  <li>Mínimo 8 caracteres</li>
+  <li>Al menos una mayúscula</li>
+  <li>Al menos un número</li>
+</ul>
+</section>
+
+<!-- Candidatos -->
+<section aria-labelledby="api-candidatos">
+<h3 id="api-candidatos">Candidatos — <code>/api/candidatos</code></h3>
+<table aria-label="Endpoints de candidatos">
+  <thead>
+    <tr><th scope="col">Método</th><th scope="col">Ruta</th><th scope="col">Auth</th><th scope="col">Roles</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/api/candidatos/perfil</code></td><td>✅</td><td>Candidato, Gestor, Admin</td><td>Obtener perfil propio</td></tr>
+    <tr><td>PUT</td><td><code>/api/candidatos/perfil</code></td><td>✅</td><td>Solo Candidato</td><td>Actualizar perfil propio</td></tr>
+    <tr><td>GET</td><td><code>/api/candidatos/perfil/completitud</code></td><td>✅</td><td>Candidato, Gestor, Admin</td><td>% de completitud + campos faltantes</td></tr>
+  </tbody>
+</table>
+
+<h4>Campos requeridos para completitud (15 total)</h4>
+<table aria-label="Campos requeridos para la completitud del perfil">
+  <thead>
+    <tr><th scope="col">#</th><th scope="col">Campo</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><code>nombre</code></td><td>Nombre</td></tr>
+    <tr><td>2</td><td><code>apellido</code></td><td>Apellido</td></tr>
+    <tr><td>3</td><td><code>celular</code></td><td>Teléfono celular</td></tr>
+    <tr><td>4</td><td><code>fechaNacimiento</code></td><td>Fecha de nacimiento</td></tr>
+    <tr><td>5</td><td><code>genero</code></td><td>Género</td></tr>
+    <tr><td>6</td><td><code>jurisdiccion</code></td><td>Provincia / Jurisdicción</td></tr>
+    <tr><td>7</td><td><code>ciudad</code></td><td>Ciudad</td></tr>
+    <tr><td>8</td><td><code>discapacidadVisual</code></td><td>Tipo de discapacidad visual</td></tr>
+    <tr><td>9</td><td><code>condicionVisual</code></td><td>Condición visual específica</td></tr>
+    <tr><td>10</td><td><code>tieneCud</code></td><td>Posee Certificado Único de Discapacidad</td></tr>
+    <tr><td>11</td><td><code>nivelEducativo</code></td><td>Nivel educativo alcanzado</td></tr>
+    <tr><td>12</td><td><code>autonomia</code></td><td>Nivel de autonomía</td></tr>
+    <tr><td>13</td><td><code>vinculoTecnologia</code></td><td>Vínculo con la tecnología</td></tr>
+    <tr><td>14</td><td><code>busquedaFormacion</code></td><td>Busca formación</td></tr>
+    <tr><td>15</td><td><code>busquedaEmpleo</code></td><td>Busca empleo</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- Documentos -->
+<section aria-labelledby="api-documentos">
+<h3 id="api-documentos">Documentos — <code>/api/documentos</code></h3>
+<table aria-label="Endpoint de documentos">
+  <thead>
+    <tr><th scope="col">Método</th><th scope="col">Ruta</th><th scope="col">Auth</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/api/documentos</code></td><td>❌</td><td>Placeholder — próximamente</td></tr>
+  </tbody>
+</table>
+<div class="todo" role="note" aria-label="Pendiente de implementar"><p>Pendiente de implementar.</p></div>
+</section>
+
+<!-- Notificaciones -->
+<section aria-labelledby="api-notificaciones">
+<h3 id="api-notificaciones">Notificaciones — <code>/api/notificaciones</code></h3>
+<table aria-label="Endpoint de notificaciones">
+  <thead>
+    <tr><th scope="col">Método</th><th scope="col">Ruta</th><th scope="col">Auth</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/api/notificaciones</code></td><td>❌</td><td>Placeholder — próximamente</td></tr>
+  </tbody>
+</table>
+<div class="todo" role="note" aria-label="Pendiente de implementar"><p>Pendiente de implementar.</p></div>
+</section>
+
+<!-- Health -->
+<section aria-labelledby="api-health">
+<h3 id="api-health">Health — <code>/api/health</code></h3>
+<table aria-label="Endpoint de health check">
+  <thead>
+    <tr><th scope="col">Método</th><th scope="col">Ruta</th><th scope="col">Auth</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>GET</td><td><code>/api/health</code></td><td>❌</td><td>Health check (responde {"status":"ok"})</td></tr>
+  </tbody>
+</table>
+</section>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="basededatos">
+<h2 id="basededatos">Base de datos</h2>
+
+<h3>Modelo relacional</h3>
+<ul>
+  <li><code>usuarios</code> (1) — (1) <code>candidatos_perfil</code></li>
+  <li><code>usuarios</code> (1) — (N) <code>notificaciones</code></li>
+  <li><code>candidatos_perfil</code> (1) — (N) <code>documentos</code></li>
+  <li><code>candidatos_perfil</code> (1) — (N) <code>notas_internas</code></li>
+</ul>
+
+<h3>Tabla: <code>usuarios</code></h3>
+<table aria-label="Estructura de la tabla usuarios">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>dni</code></td><td>VARCHAR(20)</td><td>único</td></tr>
+    <tr><td><code>email</code></td><td>VARCHAR(100)</td><td>único</td></tr>
+    <tr><td><code>password</code></td><td>VARCHAR(255)</td><td>hash bcrypt</td></tr>
+    <tr><td><code>rol</code></td><td>ENUM('Candidato','Gestor','Administrador')</td><td>Default: Candidato</td></tr>
+    <tr><td><code>activo</code></td><td>BOOLEAN</td><td>Default: true</td></tr>
+    <tr><td><code>ultimo_acceso</code></td><td>TIMESTAMP</td><td>nullable</td></tr>
+    <tr><td><code>fecha_registro</code></td><td>TIMESTAMP</td><td>createdAt</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabla: <code>candidatos_perfil</code></h3>
+<table aria-label="Estructura de la tabla candidatos_perfil">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>usuario_id</code></td><td>INT FK</td><td>único</td></tr>
+    <tr><td><code>nombre</code></td><td>VARCHAR(100)</td><td>Dato personal</td></tr>
+    <tr><td><code>apellido</code></td><td>VARCHAR(100)</td><td>Dato personal</td></tr>
+    <tr><td><code>celular</code></td><td>VARCHAR(50)</td><td>Dato personal</td></tr>
+    <tr><td><code>fecha_nacimiento</code></td><td>DATE</td><td>Dato personal</td></tr>
+    <tr><td><code>genero</code></td><td>VARCHAR(50)</td><td>Dato personal</td></tr>
+    <tr><td><code>pais_residencia</code></td><td>VARCHAR(100)</td><td>Ubicación</td></tr>
+    <tr><td><code>nacionalidad</code></td><td>VARCHAR(100)</td><td>Ubicación</td></tr>
+    <tr><td><code>jurisdiccion</code></td><td>VARCHAR(100)</td><td>Ubicación</td></tr>
+    <tr><td><code>ciudad</code></td><td>VARCHAR(100)</td><td>Ubicación</td></tr>
+    <tr><td><code>discapacidad_visual</code></td><td>VARCHAR(150)</td><td>Tipo de DV</td></tr>
+    <tr><td><code>condicion_visual</code></td><td>VARCHAR(100)</td><td>Discapacidad</td></tr>
+    <tr><td><code>otra_discapacidad</code></td><td>VARCHAR(10)</td><td>Discapacidad</td></tr>
+    <tr><td><code>descripcion_otra_disc</code></td><td>TEXT</td><td>Discapacidad</td></tr>
+    <tr><td><code>tiene_cud</code></td><td>VARCHAR(10)</td><td>CUD</td></tr>
+    <tr><td><code>beneficio_social</code></td><td>VARCHAR(150)</td><td>Discapacidad</td></tr>
+    <tr><td><code>tipo_escolaridad</code></td><td>VARCHAR(100)</td><td>Educación</td></tr>
+    <tr><td><code>nivel_educativo</code></td><td>VARCHAR(100)</td><td>Educación</td></tr>
+    <tr><td><code>carrera_estudios</code></td><td>TEXT</td><td>Educación</td></tr>
+    <tr><td><code>braille</code></td><td>VARCHAR(10)</td><td>Autonomía</td></tr>
+    <tr><td><code>autonomia</code></td><td>TEXT</td><td>Autonomía</td></tr>
+    <tr><td><code>apoyos_desplazamiento</code></td><td>TEXT</td><td>Autonomía</td></tr>
+    <tr><td><code>vinculo_tecnologia</code></td><td>TEXT</td><td>Tecnología</td></tr>
+    <tr><td><code>herramientas_tecnologicas</code></td><td>TEXT</td><td>Tecnología</td></tr>
+    <tr><td><code>idiomas</code></td><td>TEXT</td><td>Otros</td></tr>
+    <tr><td><code>emprendimiento</code></td><td>TEXT</td><td>Otros</td></tr>
+    <tr><td><code>busqueda_formacion</code></td><td>VARCHAR(10)</td><td>Formación</td></tr>
+    <tr><td><code>tipo_formacion_buscada</code></td><td>TEXT</td><td>Formación</td></tr>
+    <tr><td><code>busqueda_empleo</code></td><td>VARCHAR(10)</td><td>Empleo</td></tr>
+    <tr><td><code>tiene_trabajo_actual</code></td><td>VARCHAR(10)</td><td>Empleo</td></tr>
+    <tr><td><code>area_trabajo_actual</code></td><td>VARCHAR(150)</td><td>Empleo</td></tr>
+    <tr><td><code>informacion_adicional</code></td><td>TEXT</td><td>Otros</td></tr>
+    <tr><td><code>estado_perfil</code></td><td>ENUM('Pendiente','Pre-aprobado','Aprobado')</td><td>Default: Pendiente</td></tr>
+    <tr><td><code>porcentaje_completitud</code></td><td>TINYINT UNSIGNED</td><td>Default: 0</td></tr>
+    <tr><td><code>fecha_creacion</code></td><td>TIMESTAMP</td><td>createdAt</td></tr>
+    <tr><td><code>fecha_actualizacion</code></td><td>TIMESTAMP</td><td>updatedAt</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabla: <code>documentos</code></h3>
+<table aria-label="Estructura de la tabla documentos">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>perfil_id</code></td><td>INT FK</td><td>del candidato</td></tr>
+    <tr><td><code>tipo_documento</code></td><td>ENUM('CV','DNI','CUD','Otro')</td><td>Default: Otro</td></tr>
+    <tr><td><code>url_drive</code></td><td>TEXT</td><td>URL del archivo en Drive</td></tr>
+    <tr><td><code>nombre_archivo</code></td><td>VARCHAR(255)</td><td></td></tr>
+    <tr><td><code>fecha_subida</code></td><td>TIMESTAMP</td><td>createdAt</td></tr>
+    <tr><td><code>deleted_at</code></td><td>TIMESTAMP</td><td>nullable (soft delete)</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabla: <code>notificaciones</code></h3>
+<table aria-label="Estructura de la tabla notificaciones">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>usuario_id</code></td><td>INT FK</td><td>destinatario</td></tr>
+    <tr><td><code>emisor_id</code></td><td>INT FK</td><td>nullable</td></tr>
+    <tr><td><code>asunto</code></td><td>VARCHAR(255)</td><td></td></tr>
+    <tr><td><code>mensaje</code></td><td>TEXT</td><td></td></tr>
+    <tr><td><code>leida</code></td><td>BOOLEAN</td><td>Default: false</td></tr>
+    <tr><td><code>fecha_envio</code></td><td>TIMESTAMP</td><td>createdAt</td></tr>
+    <tr><td><code>fecha_lectura</code></td><td>TIMESTAMP</td><td>nullable</td></tr>
+  </tbody>
+</table>
+
+<h3>Tabla: <code>notas_internas</code></h3>
+<table aria-label="Estructura de la tabla notas_internas">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>perfil_id</code></td><td>INT FK</td><td>perfil del candidato</td></tr>
+    <tr><td><code>gestor_id</code></td><td>INT FK</td><td>gestor que escribe</td></tr>
+    <tr><td><code>contenido</code></td><td>TEXT</td><td></td></tr>
+    <tr><td><code>fecha_creacion</code></td><td>TIMESTAMP</td><td>createdAt</td></tr>
+    <tr><td><code>fecha_edicion</code></td><td>TIMESTAMP</td><td>nullable</td></tr>
+  </tbody>
+</table>
+
+<h3>Tablas sin modelo Sequelize</h3>
+<h4><code>preferencias_usuario</code></h4>
+<table aria-label="Estructura de la tabla preferencias_usuario">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>usuario_id</code></td><td>INT FK</td><td></td></tr>
+    <tr><td><code>modo_oscuro</code></td><td>BOOLEAN</td><td>Default: false</td></tr>
+    <tr><td><code>tamano_fuente</code></td><td>ENUM('normal','grande','muy_grande')</td><td>Default: normal</td></tr>
+    <tr><td><code>alto_contraste</code></td><td>BOOLEAN</td><td>Default: false</td></tr>
+    <tr><td><code>fecha_actualizacion</code></td><td>TIMESTAMP</td><td></td></tr>
+  </tbody>
+</table>
+
+<h4><code>auditoria_documentos</code></h4>
+<table aria-label="Estructura de la tabla auditoria_documentos">
+  <thead>
+    <tr><th scope="col">Columna</th><th scope="col">Tipo</th><th scope="col">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>INT PK</td><td>auto_increment</td></tr>
+    <tr><td><code>documento_id</code></td><td>INT</td><td></td></tr>
+    <tr><td><code>usuario_id</code></td><td>INT</td><td></td></tr>
+    <tr><td><code>accion</code></td><td>ENUM('Vista','Descarga','Subida','Eliminación')</td><td></td></tr>
+    <tr><td><code>ip_origen</code></td><td>VARCHAR(45)</td><td></td></tr>
+    <tr><td><code>fecha</code></td><td>TIMESTAMP</td><td></td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="autenticacion">
+<h2 id="autenticacion">Autenticación y autorización</h2>
+
+<h3>Flujo de login</h3>
+<ol>
+  <li>El cliente envía <strong>email + password</strong> a <code>POST /api/auth/login</code></li>
+  <li>Express-validator valida que email sea válido y password no esté vacío</li>
+  <li>Se busca el usuario por email en la base de datos (incluyendo su perfil)</li>
+  <li>Si no existe → respuesta <strong>401</strong> "Credenciales incorrectas"</li>
+  <li>Si el usuario no está activo → respuesta <strong>403</strong> "Cuenta deshabilitada"</li>
+  <li>Se compara la contraseña con bcrypt</li>
+  <li>Si no coincide → respuesta <strong>401</strong> "Credenciales incorrectas"</li>
+  <li>Se genera un JWT con <code>{ id, email, rol }</code> firmado con <code>JWT_SECRET</code></li>
+  <li>Se actualiza <code>ultimoAcceso</code> (de forma asíncrona, no bloquea la respuesta)</li>
+  <li>Se devuelve <code>{ token, usuario }</code> con los datos del candidato</li>
+</ol>
+
+<h3>Middlewares de autenticación</h3>
+<table aria-label="Middlewares de autenticación">
+  <thead>
+    <tr><th scope="col">Middleware</th><th scope="col">Función</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>verificarToken</code></td><td>Extrae el token del header <code>Authorization: Bearer &lt;token&gt;</code>, lo verifica y setea <code>req.usuario</code></td></tr>
+    <tr><td><code>soloRoles(...roles)</code></td><td>Permite el acceso solo si <code>req.usuario.rol</code> está en la lista de roles permitidos</td></tr>
+  </tbody>
+</table>
+
+<h3>Roles del sistema</h3>
+<table aria-label="Roles del sistema">
+  <thead>
+    <tr><th scope="col">Rol</th><th scope="col">Descripción</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>Candidato</code></td><td>Usuario del programa, gestiona su perfil</td></tr>
+    <tr><td><code>Gestor</code></td><td>Administra candidatos, revisa perfiles</td></tr>
+    <tr><td><code>Administrador</code></td><td>Acceso completo al sistema</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="tests">
+<h2 id="tests">Tests</h2>
+<p>Estructura de tests:</p>
+<pre><code>test/
+├── run-tests.js        # Runner principal + test de calcularCompletitud
+└── auth.test.js        # Tests de login (unitarios, con mocks)</code></pre>
+
+<h3>Ejecutar</h3>
+<pre><code>npm test
+# o directamente:
+node test/run-tests.js</code></pre>
+
+<h3>Tests existentes</h3>
+<ul>
+  <li><strong>calcularCompletitud</strong>: perfil vacío → 0%, perfil completo → 100%, perfil medio → ~50%</li>
+  <li><strong>login exitoso</strong>: email + password correctos → 200 + token</li>
+  <li><strong>login — password incorrecto</strong>: → 401</li>
+  <li><strong>login — usuario no existe</strong>: → 401</li>
+  <li><strong>login — usuario inactivo</strong>: → 403</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="pendientes">
+<h2 id="pendientes">Pendientes / TODO</h2>
+<ul>
+  <li><code>generar_cv.js</code> — generación/exportación de CV desde datos del perfil</li>
+  <li><code>/api/documentos/*</code> — CRUD de documentos (subida, descarga, etc.)</li>
+  <li><code>/api/notificaciones/*</code> — CRUD de notificaciones</li>
+  <li>Modelo Sequelize para <code>preferencias_usuario</code> (ya existe en DB)</li>
+  <li>Modelo Sequelize para <code>auditoria_documentos</code> (ya existe en DB)</li>
+</ul>
+</section>
+
+<!-- ============================================================ -->
+<section aria-labelledby="notas-tecnicas">
+<h2 id="notas-tecnicas">Notas técnicas</h2>
+<ul>
+  <li>Las tablas se crean automáticamente al iniciar el servidor con <code>sequelize.sync({ force: false })</code>. No borra datos existentes.</li>
+  <li>Soft delete en <code>documentos</code> (columna <code>deleted_at</code>), aunque no está implementado en las queries actuales.</li>
+  <li>Los campos en la DB usan <strong>snake_case</strong>; en el código se accede en <strong>camelCase</strong> gracias a la configuración <code>underscored: true</code> de Sequelize.</li>
+  <li>CORS configurado para aceptar peticiones del frontend en <code>http://localhost:5173</code> (puerto default de Vite).</li>
+  <li>El password "AgoraArgentina2026!" funciona para la mayoría de los candidatos de prueba.</li>
+</ul>
+</section>
+
+</main>
+
+<footer role="contentinfo">
+  <p>Documentación generada el <time datetime="2026-06-11">11 de junio de 2026</time> — Ágora Argentina Backend v1.0.0</p>
+</footer>
+
+</body>
+</html>

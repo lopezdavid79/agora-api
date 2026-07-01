@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ágora Argentina — Plan de Mejoras</title>
+  <style>
+    :root {
+      --high: #ef4444;
+      --med: #f59e0b;
+      --low: #22c55e;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      padding: 2rem 0 1.5rem;
+    }
+    header h1 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+    header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1rem;
+      text-align: center;
+    }
+    .stat-card .number { font-size: 1.5rem; font-weight: 800; }
+    .stat-card .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-card.high .number { color: var(--high); }
+    .stat-card.med .number { color: var(--med); }
+    .stat-card.low .number { color: var(--low); }
+
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .section-header h2 { font-size: 1rem; font-weight: 600; }
+    .section-header .badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.6rem;
+      border-radius: 99px;
+      color: #fff;
+    }
+    .badge.high { background: var(--high); }
+    .badge.med { background: var(--med); }
+    .badge.low { background: var(--low); }
+    .badge.done { background: #22c55e; }
+    .section-header .arrow { color: var(--text-muted); transition: transform 0.2s; font-size: 0.8rem; }
+    .section-header.open .arrow { transform: rotate(180deg); }
+    .section-body { border-top: 1px solid var(--border); padding: 0; }
+    .section-body.hidden { display: none; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 0.7rem 1.25rem; text-align: left; font-size: 0.85rem; vertical-align: top; }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+    tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+    td.num { width: 25px; color: var(--text-muted); font-size: 0.75rem; font-weight: 600; }
+    td.req { font-weight: 500; }
+    td.prio { width: 60px; text-align: center; }
+    td.effort { width: 70px; text-align: center; color: var(--text-muted); font-size: 0.8rem; }
+    td.detail { color: var(--text-muted); font-size: 0.82rem; }
+
+    .pill {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 0.1rem 0.45rem;
+      border-radius: 99px;
+      color: #fff;
+    }
+    .pill.high { background: var(--high); }
+    .pill.med { background: var(--med); }
+    .pill.low { background: var(--low); }
+    .pill.done { background: #22c55e; }
+
+    .code-block {
+      background: #f1f5f9;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.8rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      overflow-x: auto;
+      margin: 0.4rem 0;
+      line-height: 1.5;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .stats { grid-template-columns: 1fr; }
+      th, td { padding: 0.5rem 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>📋 Plan de Mejoras — Ágora Argentina</h1>
+    <p>Propuesta de campos, endpoints y esfuerzo para cada brecha pendiente</p>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card high">
+      <div class="number">3</div>
+      <div class="label">Alta prioridad</div>
+    </div>
+    <div class="stat-card med">
+      <div class="number">3</div>
+      <div class="label">Media prioridad</div>
+    </div>
+    <div class="stat-card low">
+      <div class="number">4</div>
+      <div class="label">Baja / Fase 2</div>
+    </div>
+  </div>
+
+  <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:1.5rem;">
+    El orden sigue el criterio: <strong>dependencias ↓, impacto para el usuario ↑, esfuerzo ↓</strong>.
+  </p>
+
+  <!-- ════════════ ALTA 1: Estados Laborales ENUM ════════════ -->
+  <div class="section">
+    <div class="section-header open" onclick="toggle(this)">
+      <h2>🔴 Alta #1 — Estados laborales como ENUM</h2>
+      <span class="pill high">Alta</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#31</td>
+          <td class="req">Reemplazar campos de texto libre por ENUM con estados: <code>En búsqueda laboral</code>, <code>Contratado</code>, <code>Freelance</code></td>
+          <td class="prio"><span class="pill high">Alta</span></td>
+          <td class="effort">~2h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Campos propuestos</h4>
+        <div class="code-block">
+// En src/models/CandidatoPerfil.js — REEMPLAZAR:
+busquedaEmpleo: DataTypes.STRING(10),
+tieneTrabajoActual: DataTypes.STRING(10),
+
+// POR:
+estadoLaboral: {
+  type: DataTypes.ENUM('No especifica', 'En búsqueda laboral', 'Contratado', 'Freelance'),
+  defaultValue: 'No especifica',
+},
+tieneTrabajoActual: {
+  type: DataTypes.ENUM('Sí', 'No', 'No especifica'),
+  defaultValue: 'No especifica',
+},
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem; margin-top:0.6rem;">📋 Migración SQL</h4>
+        <div class="code-block">
+ALTER TABLE candidatos_perfil
+  ADD COLUMN estado_laboral ENUM('No especifica','En búsqueda laboral','Contratado','Freelance') NOT NULL DEFAULT 'No especifica' AFTER busqueda_empleo,
+  MODIFY COLUMN tiene_trabajo_actual ENUM('Sí','No','No especifica') NOT NULL DEFAULT 'No especifica';
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem; margin-top:0.6rem;">📖 Endpoints afectados</h4>
+        <p style="font-size:0.82rem; color:var(--text-muted);">Ninguno nuevo — se actualiza vía <code>PUT /api/candidatos/perfil</code> existente (el campo no está en la lista de bloqueados).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ ALTA 2: Reset pass por gestor ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔴 Alta #2 — Recuperación de contraseña por gestor</h2>
+      <span class="pill high">Alta</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#3</td>
+          <td class="req">Endpoint para que el Gestor pueda resetear la contraseña de un candidato, generando un token de un solo uso</td>
+          <td class="prio"><span class="pill high">Alta</span></td>
+          <td class="effort">~4h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Endpoints nuevos</h4>
+        <div class="code-block">
+// Gestor+ genera token de reseteo
+POST /api/gestor/usuarios/:id/resetear-password
+Body: { }  // (no requiere body, el gestor solo inicia el proceso)
+→ 200 { "mensaje": "Token de reseteo generado", "token": "abc123" }
+
+// El candidato canjea el token (sin autenticación)
+POST /api/auth/resetear-password
+Body: { "token": "abc123", "password": "NuevaPass1", "confirmPassword": "NuevaPass1" }
+→ 200 { "mensaje": "Contraseña actualizada correctamente" }
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Modelo nuevo</h4>
+        <div class="code-block">
+// src/models/TokenReseteo.js
+{
+  id: INT PK,
+  usuarioId: INT FK,
+  token: VARCHAR(255),       // crypto.randomBytes(32).toString('hex')
+  usado: BOOLEAN default false,
+  expiraEn: DATETIME,        // ahora + 15 minutos
+  creadoPor: INT FK          // gestorId que generó el token
+}
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📖 Flujo</h4>
+        <p style="font-size:0.82rem; color:var(--text-muted);">
+          Gestor → POST resetear-password → genera token de 15 min → candidato usa POST reset-password con el token → password actualizada. El token se marca como usado.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ ALTA 3: Auditoría endpoint ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔴 Alta #3 — Endpoint de consulta de auditoría + más eventos</h2>
+      <span class="pill high">Alta</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#30<br>#39</td>
+          <td class="req">Endpoint para consultar el log de auditoría. Ampliar cobertura: registrar accesos a perfiles, cambios de estado, cambios de rol, suspensiones</td>
+          <td class="prio"><span class="pill high">Alta</span></td>
+          <td class="effort">~6h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Endpoints nuevos</h4>
+        <div class="code-block">
+GET /api/gestor/auditoria?usuarioId=&accion=&desde=&hasta=&page=1&limit=50
+→ { eventos: [...], total, page, totalPages }
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Ampliar acciones del modelo LogAuditoria</h4>
+        <div class="code-block">
+// Modificar ENUM de LogAuditoria.accion:
+ENUM('Vista', 'Descarga', 'Subida', 'Eliminación',
+     'AccesoPerfil', 'CambioEstado', 'CambioRol',
+     'Suspension', 'Reactivacion', 'CreacionUsuario')
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📖 Registrar en acciones existentes</h4>
+        <div style="font-size:0.82rem; color:var(--text-muted);">
+          <p>Agregar <code>LogAuditoria.create()</code> en:</p>
+          <ul style="padding-left:1.25rem; margin-top:0.3rem;">
+            <li><code>fichaCandidato</code> → acción <code>'AccesoPerfil'</code></li>
+            <li><code>cambiarEstado</code> → acción <code>'CambioEstado'</code></li>
+            <li><code>cambiarRol</code> → acción <code>'CambioRol'</code></li>
+            <li><code>suspenderUsuario</code> → acción <code>'Suspension'</code></li>
+            <li><code>reactivarUsuario</code> → acción <code>'Reactivacion'</code></li>
+            <li><code>crearUsuario</code> → acción <code>'CreacionUsuario'</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ MEDIA 1: Papelera restauración ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟡 Media #1 — Papelera: restaurar + purga automática</h2>
+      <span class="pill med">Media</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#9<br>#38</td>
+          <td class="req">Endpoint para listar documentos en papelera, restaurarlos y un job programado que purgue documentos con deletedAt &gt; 30 días</td>
+          <td class="prio"><span class="pill med">Media</span></td>
+          <td class="effort">~4h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Endpoints nuevos</h4>
+        <div class="code-block">
+// Gestor+ ve documentos eliminados (papelera)
+GET /api/gestor/papelera?perfilId=&page=1&limit=20
+→ { documentos: [...], total, page, totalPages }
+
+// Restaurar un documento (quitar deletedAt)
+POST /api/gestor/papelera/:id/restaurar
+→ { mensaje: 'Documento restaurado correctamente' }
+
+// Purga manual (opcional)
+DELETE /api/gestor/papelera/purga
+→ { mensaje: 'X documentos purgados definitivamente' }
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem; margin-top:0.6rem;">⏰ Job programado (node-cron)</h4>
+        <div class="code-block">
+npm install node-cron
+
+// src/jobs/purga-documentos.js
+const cron = require('node-cron');
+const { Documento } = require('../models');
+const fs = require('fs');
+
+// Ejecutar cada día a las 3:00 AM
+cron.schedule('0 3 * * *', async () => {
+  const treintaDias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const aPurgar = await Documento.findAll({
+    where: { deletedAt: { [Op.lte]: treintaDias } },
+  });
+  for (const doc of aPurgar) {
+    try { fs.unlinkSync(doc.urlDrive); } catch (e) {}
+    await doc.destroy({ force: true }); // DELETE físico
+  }
+  console.log(`🧹 Purga: ${aPurgar.length} documentos eliminados`);
+});
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ MEDIA 2: Notif. masiva selectiva ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟡 Media #2 — Notificación masiva selectiva</h2>
+      <span class="pill med">Media</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#19</td>
+          <td class="req">Endpoint que reciba una lista de usuarios afectados y les envíe notificación, combinando el flujo "usuarios afectados por catálogo → notificar solo a ellos"</td>
+          <td class="prio"><span class="pill med">Media</span></td>
+          <td class="effort">~3h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Endpoints nuevos / modificados</h4>
+        <div class="code-block">
+// NUEVO: notificar a usuarios específicos
+POST /api/notificaciones/selectiva
+Body: {
+  "usuarioIds": [12, 15, 23],    // array de IDs
+  "asunto": "Actualización de catálogo",
+  "mensaje": "La opción 'NVDA' fue deshabilitada. Actualizá tu perfil."
+}
+→ 201 { "mensaje": "Notificación enviada a 3 usuarios" }
+
+// MODIFICAR: integrar en catálogos
+POST /api/catalogos/:id/notificar-afectados
+Body: {
+  "asunto": "Cambio en el catálogo",
+  "mensaje": "..."
+}
+→ 201 { "mensaje": "Notificación enviada a X usuarios", "usuarioIds": [...] }
+        </div>
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-top:0.5rem;">
+          El segundo endpoint combina <code>GET /catalogos/:id/usuarios-afectados</code> + creación de notificaciones en batch.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ MEDIA 3: Historial de notas ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟡 Media #3 — Historial de versiones de notas</h2>
+      <span class="pill med">Media</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#26</td>
+          <td class="req">Preservar el contenido anterior al editar una nota, creando un historial consultable de versiones</td>
+          <td class="prio"><span class="pill med">Media</span></td>
+          <td class="effort">~3h</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Modelo nuevo</h4>
+        <div class="code-block">
+// src/models/NotaHistorial.js
+{
+  id: INT PK,
+  notaId: INT FK,
+  contenidoAnterior: TEXT,
+  editadoPor: INT FK,           // gestorId
+  fechaEdicion: TIMESTAMP
+}
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem; margin-top:0.6rem;">📖 Lógica en editarNota</h4>
+        <div class="code-block">
+// Antes de actualizar el contenido en editarNota():
+await NotaHistorial.create({
+  notaId: nota.id,
+  contenidoAnterior: nota.contenido,
+  editadoPor: req.usuario.id,
+});
+
+// Nuevo endpoint:
+GET /api/gestor/candidatos/:id/notas/:nid/historial
+→ [{ contenidoAnterior, editadoPor, fechaEdicion }, ...]
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ BAJA 1: Tablas separadas ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟢 Baja #1 — Separar perfil en tablas por sección</h2>
+      <span class="pill low">Baja</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#35</td>
+          <td class="req">Dividir la tabla monolítica `candidatos_perfil` en tablas separadas: Datos Personales, Discapacidad, Educación, Laboral</td>
+          <td class="prio"><span class="pill low">Baja</span></td>
+          <td class="effort">~2-3 semanas</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem;">📦 Modelos propuestos</h4>
+        <div class="code-block">
+// candidatos_perfil (se reduce a lo mínimo)
+{ id, usuarioId, estadoPerfil, porcentajeCompletitud, observacionPerfil, fechaObservacion }
+
+// perfil_datos_personales (1:1 con candidatos_perfil)
+{ id, perfilId, nombre, apellido, celular, fechaNacimiento, genero,
+  paisResidencia, nacionalidad, jurisdiccion, ciudad }
+
+// perfil_discapacidad (1:1)
+{ id, perfilId, discapacidadVisual, condicionVisual, otraDiscapacidad,
+  descripcionOtraDisc, tieneCud, beneficioSocial, braille, autonomia,
+  apoyosDesplazamiento }
+
+// perfil_educacion (1:1)
+{ id, perfilId, tipoEscolaridad, nivelEducativo, carreraEstudios,
+  vinculoTecnologia, herramientasTecnologicas, idiomas }
+
+// perfil_laboral (1:1)
+{ id, perfilId, busquedaEmpleo, tieneTrabajoActual, areaTrabajoActual,
+  emprendimiento, busquedaFormacion, tipoFormacionBuscada, informacionAdicional,
+  estadoLaboral }
+        </div>
+        <h4 style="font-size:0.85rem; margin-bottom:0.4rem; margin-top:0.6rem;">⚠️ Consideraciones</h4>
+        <p style="font-size:0.82rem; color:var(--text-muted);">
+          Refactor mayor: modificar <strong>todos</strong> los controladores que usan <code>CandidatoPerfil</code>,
+          ajustar includes en búsqueda AND/OR, exportación Excel, fichas de candidato.
+          Requiere migración de datos existentes. Recomendado para <strong>después de la Fase 2</strong>.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ BAJA 2: Frontend multi-rol ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟢 Baja #2 — Botón de cambio de vista (frontend)</h2>
+      <span class="pill low">Baja</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th>Req</th><th>Descripción</th><th>Prioridad</th><th>Esfuerzo</th></tr>
+        <tr>
+          <td class="num">#2</td>
+          <td class="req">Botón "Cambiar a modo Candidato / Gestor" en la interfaz que consuma el endpoint <code>POST /api/auth/cambiar-vista</code></td>
+          <td class="prio"><span class="pill low">Baja</span></td>
+          <td class="effort">~1-2 días</td>
+        </tr>
+      </table>
+      <div style="padding: 0.75rem 1.25rem;">
+        <p style="font-size:0.82rem; color:var(--text-muted);">
+          El backend ya soporta multi-rol (tabla puente + JWT con array de roles + endpoint <code>cambiar-vista</code>).
+          Solo falta que el frontend detecte si el usuario tiene más de un rol y muestre el botón de cambio.
+          Al hacer clic, llama a <code>POST /api/auth/cambiar-vista { rol: "Gestor" }</code>, guarda el nuevo token y recarga la interfaz.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════ BAJA 3: Fase 2 ════════════ -->
+  <div class="section">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🟢 Baja #3 — Fases futuras (post-Fase 1)</h2>
+      <span class="pill low">Baja</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body" style="padding: 0.75rem 1.25rem;">
+      <table>
+        <tr><th>Fase</th><th>Requerimiento</th><th>Propuesta de endpoints</th></tr>
+        <tr>
+          <td><strong>Fase 2</strong></td>
+          <td>Gestión de Cursos y Formación</td>
+          <td><code>/api/cursos/*</code> — CRUD de cursos, inscripciones, reportes de progreso</td>
+        </tr>
+        <tr>
+          <td><strong>Fase 3</strong></td>
+          <td>Gestión de Entrevistas</td>
+          <td><code>/api/entrevistas/*</code> — coordinación de encuentros, calendarios, seguimiento</td>
+        </tr>
+        <tr>
+          <td><strong>Fase 4</strong></td>
+          <td>Perfil Profesional y Conexión Laboral</td>
+          <td><code>/api/cv/*</code> — constructor de CV, filtros para reclutadores</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Resumen general -->
+  <div class="section">
+    <div class="section-header open" onclick="toggle(this)">
+      <h2>📊 Resumen general del backend</h2>
+      <span class="pill done">✅ 36 endpoints</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body" style="padding: 0.75rem 1.25rem;">
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; font-size:0.85rem;">
+        <div>
+          <p><strong>✅ Implementado (24/36 reqs)</strong></p>
+          <ul style="padding-left:1.2rem; margin-top:0.3rem;">
+            <li>Login DNI/email</li>
+            <li>Registro de candidatos</li>
+            <li>Perfil + completitud</li>
+            <li>Documentos (subir, listar, descargar)</li>
+            <li>Notificaciones in-app</li>
+            <li>Catálogos CRUD + deshabilitar</li>
+            <li>Búsqueda AND/OR</li>
+            <li>Exportación Excel</li>
+            <li>Ficha de candidato</li>
+            <li>Notas internas + adjuntos</li>
+            <li>Multi-rol M:N</li>
+            <li>Roles Gestor, Coordinador, GestorTécnico</li>
+            <li>Gestión de usuarios (CRUD, suspender)</li>
+            <li>Preferencias de accesibilidad</li>
+            <li>Auditoría de documentos</li>
+            <li>Configuración del sistema</li>
+            <li>Alertas técnicas</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>🟡 Pendiente de mejora</strong></p>
+          <ul style="padding-left:1.2rem; margin-top:0.3rem;">
+            <li>Estados laborales como ENUM</li>
+            <li>Reset de contraseña por gestor</li>
+            <li>Endpoint de consulta de auditoría</li>
+            <li>Papelera: restaurar + purga</li>
+            <li>Notificación masiva selectiva</li>
+            <li>Historial de versiones de notas</li>
+          </ul>
+          <p style="margin-top:0.6rem;"><strong>🔴 No implementado</strong></p>
+          <ul style="padding-left:1.2rem; margin-top:0.3rem;">
+            <li>Tablas separadas por sección (#35)</li>
+          </ul>
+          <p style="margin-top:0.6rem;"><strong>⬆️ Fases futuras</strong></p>
+          <ul style="padding-left:1.2rem; margin-top:0.3rem;">
+            <li>Fase 2: Cursos</li>
+            <li>Fase 3: Entrevistas</li>
+            <li>Fase 4: CV + Reclutadores</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Generado el 13 de junio de 2026 — Basado en auditoría vs. <code>requerimientos-extraidos.txt</code>
+  </footer>
+
+</div>
+
+<script>
+function toggle(el) { el.classList.toggle('open'); el.nextElementSibling.classList.toggle('hidden'); }
+document.querySelectorAll('.section-header').forEach(h => h.classList.add('open'));
+</script>
+</body>
+</html>

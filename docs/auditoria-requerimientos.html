@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ágora Argentina — Auditoría de Requerimientos</title>
+  <style>
+    :root {
+      --ok: #22c55e;
+      --partial: #f59e0b;
+      --no: #ef4444;
+      --frontend: #6b7280;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem;
+      line-height: 1.6;
+    }
+    .container { max-width: 960px; margin: 0 auto; }
+
+    /* Header */
+    header {
+      text-align: center;
+      padding: 2rem 0 1.5rem;
+    }
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1rem;
+      text-align: center;
+    }
+    .stat-card .number {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .stat-card.ok .number { color: var(--ok); }
+    .stat-card.partial .number { color: var(--partial); }
+    .stat-card.no .number { color: var(--no); }
+    .stat-card.frontend .number { color: var(--frontend); }
+
+    /* Progress bar */
+    .progress-wrap {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .progress-wrap .title {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .progress-bar {
+      height: 12px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+      display: flex;
+    }
+    .progress-bar .seg {
+      height: 100%;
+      transition: width 0.3s;
+    }
+    .progress-bar .seg.ok { background: var(--ok); }
+    .progress-bar .seg.partial { background: var(--partial); }
+    .progress-bar .seg.no { background: var(--no); }
+    .progress-bar .seg.frontend { background: var(--frontend); }
+
+    .legend {
+      display: flex;
+      gap: 1.25rem;
+      margin-top: 0.6rem;
+      font-size: 0.8rem;
+      flex-wrap: wrap;
+    }
+    .legend span { display: flex; align-items: center; gap: 0.35rem; }
+    .legend .dot {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 99px;
+    }
+    .legend .dot.ok { background: var(--ok); }
+    .legend .dot.partial { background: var(--partial); }
+    .legend .dot.no { background: var(--no); }
+    .legend .dot.frontend { background: var(--frontend); }
+
+    /* Sections */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.9rem 1.25rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .section-header h2 {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .section-header .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.15rem 0.6rem;
+      border-radius: 99px;
+      color: #fff;
+    }
+    .badge.ok { background: var(--ok); }
+    .badge.partial { background: var(--partial); }
+    .badge.no { background: var(--no); }
+    .section-header .arrow {
+      color: var(--text-muted);
+      transition: transform 0.2s;
+      font-size: 0.8rem;
+    }
+    .section-header.open .arrow { transform: rotate(180deg); }
+
+    .section-body {
+      border-top: 1px solid var(--border);
+      padding: 0;
+    }
+    .section-body.hidden { display: none; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 0.7rem 1.25rem;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+    tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+    td.status { width: 40px; text-align: center; font-size: 1.1rem; }
+    td.num { width: 30px; color: var(--text-muted); font-size: 0.8rem; }
+    td.desc { font-weight: 500; }
+    td.evidence { color: var(--text-muted); font-size: 0.8rem; max-width: 280px; }
+    td.evidence code {
+      background: #f1f5f9;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+    .pill {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.1rem 0.5rem;
+      border-radius: 99px;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .pill.ok { background: var(--ok); }
+    .pill.partial { background: var(--partial); }
+    .pill.no { background: var(--no); }
+    .pill.frontend { background: var(--frontend); }
+
+    /* Summary section */
+    .summary-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .summary-section h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+    .summary-section ul { padding-left: 1.25rem; }
+    .summary-section li {
+      margin-bottom: 0.35rem;
+      font-size: 0.88rem;
+    }
+    .summary-section li strong { font-weight: 600; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 0 0.5rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 0.5rem 0.75rem; }
+      td.evidence { max-width: 140px; }
+      td.evidence code { font-size: 0.7rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <header>
+    <h1>📋 Ágora Argentina</h1>
+    <p>Auditoría de Requerimientos vs. Implementación — Fase 1</p>
+  </header>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card ok">
+      <div class="number">31</div>
+      <div class="label">Implementado</div>
+    </div>
+    <div class="stat-card partial">
+      <div class="number">2</div>
+      <div class="label">Parcial</div>
+    </div>
+    <div class="stat-card no">
+      <div class="number">1</div>
+      <div class="label">No implementado</div>
+    </div>
+    <div class="stat-card frontend">
+      <div class="number">2</div>
+      <div class="label">Frontend</div>
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="progress-wrap">
+    <div class="title">
+      <span>Progreso general</span>
+      <span>31 / 36 requerimientos</span>
+    </div>
+    <div class="progress-bar">
+      <div class="seg ok" style="width: 86.1%"></div>
+      <div class="seg partial" style="width: 5.6%"></div>
+      <div class="seg no" style="width: 2.8%"></div>
+      <div class="seg frontend" style="width: 5.6%"></div>
+    </div>
+    <div class="legend">
+      <span><span class="dot ok"></span> Implementado</span>
+      <span><span class="dot partial"></span> Parcial</span>
+      <span><span class="dot no"></span> No implementado</span>
+      <span><span class="dot frontend"></span> Frontend</span>
+    </div>
+  </div>
+
+  <!-- Summary: Critical gaps -->
+  <div class="summary-section">
+    <h2>🔴 Brecha restante — No implementado</h2>
+    <ul>
+      <li><strong>#35 — Tablas separadas por sección</strong>: `candidatos_perfil` es una tabla monolítica de 40+ columnas. Refactor mayor, recomendado para después de la Fase 2.</li>
+    </ul>
+  </div>
+
+  <!-- Summary: Partial -->
+  <div class="summary-section">
+    <h2>🟡 Con oportunidad de mejora</h2>
+    <ul>
+      <li><strong>#2 — Multi-rol (frontend)</strong>: Backend completo (tabla M:N, JWT con array de roles, `POST /cambiar-vista`). Falta botón en la interfaz.</li>
+      <li><strong>#30/#39 — Consulta de auditoría</strong>: `LogAuditoria` registra eventos de documentos. Falta endpoint de consulta (`GET /api/gestor/auditoria`) y registrar más acciones (accesos a perfiles, cambios de estado, roles).</li>
+    </ul>
+  </div>
+
+  <!-- Sections -->
+  <div class="section" id="sec-acceso">
+    <div class="section-header open" onclick="toggle(this)">
+      <h2>🔐 Acceso y Gestión de Identidad</h2>
+      <span class="badge ok">✅ 3 / 4</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">1</td>
+          <td class="desc">Login con DNI o email</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>auth.controller.js:23-27</code> — detecta <code>@</code> y busca por email o DNI</td>
+        </tr>
+        <tr>
+          <td class="status">🟡</td><td class="num">2</td>
+          <td class="desc">Multi-rol (Gestor y Candidato simultáneo)</td>
+          <td><span class="pill partial">Parcial</span></td>
+          <td class="evidence"><code>Rol.js</code> + <code>UsuarioRol.js</code> — tabla puente M+N implementada. <code>POST /api/auth/cambiar-vista</code>. Pendiente botón frontend</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">3</td>
+          <td class="desc">Recuperación de contraseña solo por gestor</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PUT /gestor/usuarios/:id/resetear-password</code> — genera token 15 min. <code>POST /auth/resetear-password</code> — canjea token</td>
+        </tr>
+        <tr>
+          <td class="status">⚪</td><td class="num">4</td>
+          <td class="desc">Accesibilidad pre-login (fuente, modo oscuro)</td>
+          <td><span class="pill frontend">Frontend</span></td>
+          <td class="evidence"><code>GET /api/preferencias</code> requiere token. Persistencia backend OK; UX pre-login es frontend</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-candidato">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>👤 Portal del Candidato</h2>
+      <span class="badge ok">✅ 4 / 5</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">5</td>
+          <td class="desc">Dashboard con barra de progreso del perfil</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/candidatos/perfil/completitud</code> — devuelve % y campos faltantes</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">6</td>
+          <td class="desc">Notificaciones: alertas y avisos</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/notificaciones</code>, <code>PUT /:id/leer</code>, polling con <code>GET /nuevas</code></td>
+        </tr>
+        <tr>
+          <td class="status">⚪</td><td class="num">7</td>
+          <td class="desc">Carga progresiva en secciones</td>
+          <td><span class="pill frontend">Frontend</span></td>
+          <td class="evidence"><code>PUT /api/candidatos/perfil</code> acepta actualización parcial. La división en secciones es decisión del frontend</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">8</td>
+          <td class="desc">Subir documentos (DNI, CUD, CV)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>POST /api/documentos/subir</code> — multer + validación MIME + 5MB límite</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">9</td>
+          <td class="desc">Papelera de seguridad 30 días</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /gestor/papelera</code> — listar. <code>POST /:id/restaurar</code>. Purga automática 3:00 AM vía node-cron</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-ssc">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>📊 Panel de Gestión (SSC)</h2>
+      <span class="badge ok">✅ 5 / 6</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">10</td>
+          <td class="desc">Buscador avanzado con AND/OR</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/gestor/candidatos/buscar?modo=AND|OR</code> — 26 campos filtrables</td>
+        </tr>
+        <tr>
+          <td class="status">⚪</td><td class="num">11</td>
+          <td class="desc">Ficha del candidato + visor interno</td>
+          <td><span class="pill frontend">Frontend</span></td>
+          <td class="evidence"><code>GET /api/gestor/candidatos/:id</code> devuelve perfil + docs. Visor es frontend</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">12</td>
+          <td class="desc">Cambiar estado de validación</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PUT /api/gestor/candidatos/:id/estado</code> — Pendiente ↔ Pre-aprobado ↔ Aprobado</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">13</td>
+          <td class="desc">Notas privadas con adjuntos</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>POST /gestor/candidatos/:id/notas</code> — notas + <code>POST .../notas/:nid/adjuntos</code> para archivos</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">14</td>
+          <td class="desc">Enviar notificaciones al candidato</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>POST /api/notificaciones</code> — Gestor+ crea notificación para un usuario</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">15</td>
+          <td class="desc">Jerarquía: Coordinador asigna roles, Gestor no</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>gestor.routes.js:45</code> — <code>soloRoles('Coordinador','Administrador')</code></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-roles">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>👥 Roles y Catálogos</h2>
+      <span class="badge ok">✅ 4 / 5</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">16</td>
+          <td class="desc">Rol Gestor Técnico</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET/PUT /api/admin/config</code> — <code>GET /api/admin/alertas</code>. Límites configurables vía <code>ConfiguracionSistema</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">17</td>
+          <td class="desc">Catálogos CRUD</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>/api/catalogos/*</code> — 9 tipos con CRUD completo</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">18</td>
+          <td class="desc">Deshabilitar (no eliminar) opciones en uso</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>DELETE /catalogos/:id</code> chequea integridad; <code>PUT /:id/deshabilitar</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">19</td>
+          <td class="desc">Notificación masiva a afectados por catálogo</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>POST /notificaciones/selectiva</code> — envía a array de usuarioIds</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-busqueda">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🔍 Búsqueda y Exportación</h2>
+      <span class="badge ok">✅ 2 / 2</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">20</td>
+          <td class="desc">Filtros combinables AND/OR</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/gestor/candidatos/buscar?modo=AND|OR</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">21</td>
+          <td class="desc">Exportación Excel con enlaces a documentos</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/gestor/candidatos/exportar</code> — ExcelJS con columnas + links</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-usuarios">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>👤 Gestión de Usuarios</h2>
+      <span class="badge ok">✅ 5 / 5</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">22</td>
+          <td class="desc">Buscar usuarios por nombre o DNI</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>GET /api/gestor/usuarios?search=</code> — LIKE multi-campo</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">23</td>
+          <td class="desc">Suspender cuentas</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PUT /api/gestor/usuarios/:id/suspender</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">24</td>
+          <td class="desc">Reactivar cuentas</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PUT /api/gestor/usuarios/:id/reactivar</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">25</td>
+          <td class="desc">Cambiar nivel de validación</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PUT /api/gestor/candidatos/:id/estado</code></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-notas">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>📝 Notas y Expediente</h2>
+      <span class="badge ok">✅ 2 / 2</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">26</td>
+          <td class="desc">Notas con fecha, autor, historial</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>NotaHistorial</code> — guarda contenido anterior al editar. <code>GET /historial</code> consulta versiones</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">27</td>
+          <td class="desc">Adjuntar archivos a notas internas</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>NotaAdjunto</code> + <code>POST /candidatos/:id/notas/:nid/adjuntos</code></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-control">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>⚙️ Control Técnico</h2>
+      <span class="badge partial">🟡 2 / 3</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">28</td>
+          <td class="desc">Límites de espacio configurables</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>ConfiguracionSistema</code> — <code>GET/PUT /api/admin/config</code>. Valores por defecto: 5MB, 10 archivos</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">29</td>
+          <td class="desc">Alertas técnicas (errores de carga, fallos)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>AlertaTecnica</code> modelo + <code>GET /api/admin/alertas</code>. Función helper <code>crearAlerta()</code> para uso interno</td>
+        </tr>
+        <tr>
+          <td class="status">🟡</td><td class="num">30</td>
+          <td class="desc">Registro de Auditoría consultable</td>
+          <td><span class="pill partial">Parcial</span></td>
+          <td class="evidence"><code>LogAuditoria</code> creado pero sin endpoint de consulta y solo registra descargas de documentos</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-perfil">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>👤 Perfil del Candidato (estados)</h2>
+      <span class="badge ok">✅ 2 / 2</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">31</td>
+          <td class="desc">Estados laborales (En búsqueda, Contratado, Freelance)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>estadoLaboral</code> ENUM: 'No especifica','En búsqueda laboral','Contratado','Freelance'. <code>tieneTrabajoActual</code> ENUM</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">32</td>
+          <td class="desc">Observación de Perfil Incompleto</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>POST /api/gestor/candidatos/:id/observacion</code> — alerta naranja</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section" id="sec-arquitectura">
+    <div class="section-header" onclick="toggle(this)">
+      <h2>🏗️ Arquitectura de Base de Datos</h2>
+      <span class="badge partial">🟡 6 / 7</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="section-body">
+      <table>
+        <tr><th></th><th>#</th><th>Requerimiento</th><th>Estado</th><th>Evidencia</th></tr>
+        <tr>
+          <td class="status">✅</td><td class="num">33</td>
+          <td class="desc">Roles M:N (tabla puente)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>Rol.js</code> + <code>UsuarioRol.js</code> — <code>belongsToMany</code>. JWT incluye <code>roles</code> array</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">34</td>
+          <td class="desc">Preferencias de usuario (modo oscuro, fuente)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>PreferenciaUsuario</code> modelo + <code>GET/PUT /api/preferencias</code></td>
+        </tr>
+        <tr>
+          <td class="status">🔴</td><td class="num">35</td>
+          <td class="desc">Tablas separadas por sección de perfil</td>
+          <td><span class="pill no">No impl.</span></td>
+          <td class="evidence"><code>CandidatoPerfil</code> — tabla monolítica de 40+ columnas</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">36</td>
+          <td class="desc">Notas internas con formato Markdown</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>NotaInterna.contenido: TEXT</code> — almacena Markdown. Render frontend</td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">37</td>
+          <td class="desc">Catálogos con campo Activo/Inactivo</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>Catalogo.activo: BOOLEAN</code> — <code>PUT /:id/deshabilitar</code></td>
+        </tr>
+        <tr>
+          <td class="status">✅</td><td class="num">38</td>
+          <td class="desc">Borrado lógico de documentos (30 días)</td>
+          <td><span class="pill ok">Completo</span></td>
+          <td class="evidence"><code>Documento.deletedAt</code> + job node-cron 3:00 AM + <code>POST /papelera/:id/restaurar</code></td>
+        </tr>
+        <tr>
+          <td class="status">🟡</td><td class="num">39</td>
+          <td class="desc">Log de Auditoría estructurado</td>
+          <td><span class="pill partial">Parcial</span></td>
+          <td class="evidence"><code>LogAuditoria</code> registra eventos de documentos. Pendiente: endpoint de consulta + más acciones</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Dependency note -->
+  <div class="summary-section">
+    <h2>✅ Dependencia crítica resuelta</h2>
+    <p style="font-size: 0.9rem;">
+      <strong>#33 (Roles M:N)</strong> → implementado con <code>Rol.js</code> + <code>UsuarioRol.js</code> (tabla puente).
+      <strong>#2 (Multi-rol)</strong> → JWT incluye <code>roles</code> array + endpoint <code>POST /api/auth/cambiar-vista</code>.
+      <strong>#16 (Gestor Técnico)</strong> → rol agregado + <code>/api/admin/*</code> endpoints.
+    </p>
+  </div>
+
+  <footer>
+    Actualizado el 13 de junio de 2026 — 10 mejoras aplicadas (papelera, reset pass, adjuntos, historial, estados laborales, notif. selectiva, etc.)
+  </footer>
+
+</div>
+
+<script>
+function toggle(el) {
+  el.classList.toggle('open');
+  const body = el.nextElementSibling;
+  body.classList.toggle('hidden');
+}
+// Open all sections by default
+document.querySelectorAll('.section-header').forEach(h => h.classList.add('open'));
+</script>
+</body>
+</html>
