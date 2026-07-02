@@ -13,7 +13,7 @@ const { Usuario, CandidatoPerfil } = require('../src/models/index');
 
 const ADMIN = {
   dni:      '99999999',
-  email:    'admin@agora.com',
+  email:    'info@agoraargentina.ar',
   password: 'Admin2026!',
   rol:      'Administrador',
 };
