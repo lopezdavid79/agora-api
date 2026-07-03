@@ -1,5 +1,6 @@
 const fs   = require('fs');
 const path = require('path');
+const { URL } = require('url');
 const { Documento, CandidatoPerfil, LogAuditoria } = require('../models/index');
 
 // ── POST /api/documentos/subir ────────────────────────────────
@@ -125,7 +126,15 @@ async function descargarDocumento(req, res) {
       }
     }
 
-    // Verificar que el archivo exista en disco
+    // Detectar si urlDrive es URL externa o ruta local
+    const esUrlExterna = String(documento.urlDrive).startsWith('http');
+
+    if (esUrlExterna) {
+      // Documento de Drive — redirigir a la URL original
+      return res.redirect(302, documento.urlDrive);
+    }
+
+    // Documento local — verificar que exista en disco y enviarlo
     if (!fs.existsSync(documento.urlDrive)) {
       return res.status(404).json({ error: 'El archivo no existe en el servidor' });
     }
