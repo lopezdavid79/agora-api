@@ -44,6 +44,28 @@ app.use('/api/admin',          require('./routes/admin.routes'));
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// ── Test DB (temporal) ────────────────────────────────────────
+app.get('/api/test-db', async (req, res) => {
+  try {
+    const { sequelize } = require('./config/database');
+    await sequelize.authenticate();
+    const [result] = await sequelize.query('SELECT 1+1 AS suma');
+    const tablas = await sequelize.query(
+      'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?',
+      { replacements: [process.env.DB_NAME] }
+    );
+    res.json({
+      status: 'ok',
+      db: process.env.DB_NAME,
+      host: process.env.DB_HOST || 'localhost',
+      suma: result[0].suma,
+      tablas: tablas[0].map(t => Object.values(t)[0]),
+    });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message, code: err.code });
+  }
+});
+
 // ── Error handler global ──────────────────────────────────────
 app.use((err, req, res, next) => {
   console.error(err.stack);
