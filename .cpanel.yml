@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/agoraargentina/repositories/agora-api
+    - /bin/cp -R * $DEPLOYPATH
+    # Force update: 02-06-2026

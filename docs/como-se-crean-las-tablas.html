@@ -1,0 +1,360 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cómo se crean las tablas — Ágora API</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+    --green: #4ade80; --yellow: #fbbf24; --pink: #f472b6; --orange: #fb923c;
+    --radius: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.7; padding: 2rem;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 {
+    font-size: 2rem; font-weight: 700; margin-bottom: .25rem;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    color: var(--muted); font-size: .95rem; margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border); padding-bottom: 1rem;
+  }
+  h2 { font-size: 1.3rem; font-weight: 600; margin: 2rem 0 .75rem; }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.25rem 0 .5rem; color: var(--accent); }
+  p { margin-bottom: .75rem; }
+  code {
+    background: var(--surface); padding: .15em .5em; border-radius: 4px;
+    font-size: .88em; color: var(--yellow);
+  }
+  pre {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 1rem 1.25rem; overflow-x: auto; font-size: .85rem; line-height: 1.5;
+    margin: .75rem 0 1.25rem;
+  }
+  table {
+    width: 100%; border-collapse: collapse; margin: .75rem 0 1.25rem; font-size: .9rem;
+  }
+  th, td {
+    border: 1px solid var(--border); padding: .5rem .75rem; text-align: left;
+  }
+  th { background: var(--surface); font-weight: 600; color: var(--accent); }
+  tr:hover td { background: rgba(56, 189, 248, .04); }
+  .flow {
+    display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+    margin: 1.5rem 0; padding: 1rem; background: var(--surface);
+    border-radius: var(--radius); border: 1px solid var(--border);
+  }
+  .flow span {
+    background: var(--bg); padding: .4rem .8rem; border-radius: var(--radius);
+    font-size: .85rem; font-weight: 500;
+  }
+  .flow .arrow { color: var(--muted); font-size: 1.2rem; background: transparent; padding: 0; }
+  .flow .highlight { border: 1px solid var(--accent); }
+  .tag {
+    display: inline-block; font-size: .7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .03em; padding: .15em .6em; border-radius: 4px; margin-right: .3rem;
+  }
+  .tag-sync { background: #1a3a2a; color: var(--green); }
+  .tag-mig  { background: #3a2a1a; color: var(--orange); }
+  ul, ol { margin: .5rem 0 1rem 1.5rem; }
+  li { margin-bottom: .3rem; }
+  .file-path { font-family: monospace; font-size: .85rem; color: var(--muted); display: block; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Como se crean las tablas en Agora API</h1>
+<p class="subtitle">Programa Agora Argentina &mdash; Backend REST &middot; Express + Sequelize + MySQL</p>
+
+<p>
+  Este documento explica el flujo completo de creacion de tablas en el servidor.
+  El proyecto usa <strong>Sequelize ORM</strong> con <strong>MySQL</strong> y un sistema de
+  <strong>migraciones versionadas</strong> con Umzug.
+</p>
+
+<h2>Flujo general al iniciar el servidor</h2>
+
+<div class="flow">
+  <span class="highlight">sequelize.sync()</span>
+  <span class="arrow">&rarr;</span>
+  <span>umzug.pending()</span>
+  <span class="arrow">&rarr;</span>
+  <span>umzug.up()</span>
+  <span class="arrow">&rarr;</span>
+  <span>Servidor listo</span>
+</div>
+
+<p>El codigo que orquesta esto esta en <code>src/server.js</code>, funcion <code>iniciar()</code>:</p>
+
+<pre>
+async function iniciar() {
+  await sequelize.authenticate();
+  // -- 1. Crea tablas si no existen --
+  await sequelize.sync({ force: false });
+
+  // -- 2. Migraciones versionadas --
+  const pendientes = await umzug.pending();
+  if (pendientes.length &gt; 0) {
+    await umzug.up();
+  }
+
+  // -- 3. Arranca el servidor --
+  app.listen(PORT, ...);
+}
+</pre>
+
+<h2>Etapa 1 &mdash; sequelize.sync()</h2>
+
+<p>
+  <code>sequelize.sync({ force: false })</code> <strong>crea las tablas que no existen</strong>
+  basandose en las definiciones de los modelos. No borra ni modifica tablas existentes.
+</p>
+
+<h3>Configuracion global de la base de datos</h3>
+<span class="file-path">src/config/database.js</span>
+<pre>
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASS,
+  {
+    host:    process.env.DB_HOST || 'localhost',
+    port:    process.env.DB_PORT || 3306,
+    dialect: 'mysql',
+    define: {
+      charset:   'utf8mb4',
+      collate:   'utf8mb4_unicode_ci',
+      underscored: true,   // snake_case en DB, camelCase en codigo
+      timestamps: true,
+    },
+  }
+);
+</pre>
+
+<h3>Modelos que se sincronizan</h3>
+
+<p>Hay <strong>14 archivos de modelo</strong> en <code>src/models/</code> mas <strong>3 modelos inline</strong> definidos directamente en <code>index.js</code>.</p>
+
+<table>
+  <thead>
+    <tr><th>Archivo / Origen</th><th>Modelo</th><th>Tabla</th><th>Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Usuario.js</td><td>Usuario</td><td>usuarios</td><td>dni unico, email unico</td></tr>
+    <tr><td>CandidatoPerfil.js</td><td>CandidatoPerfil</td><td>candidatos_perfil</td><td>Perfil extendido del candidato</td></tr>
+    <tr><td>Rol.js</td><td>Rol</td><td>roles</td><td>Catalogo de roles del sistema</td></tr>
+    <tr><td>UsuarioRol.js</td><td>UsuarioRol</td><td>usuarios_roles</td><td>Tabla pivote M:N (Usuarios &harr; Roles)</td></tr>
+    <tr><td>ConfiguracionSistema.js</td><td>ConfiguracionSistema</td><td>configuraciones_sistema</td><td>Configuracion clave-valor</td></tr>
+    <tr><td>AlertaTecnica.js</td><td>AlertaTecnica</td><td>alertas_tecnicas</td><td>Alertas internas del sistema</td></tr>
+    <tr><td>TokenReseteo.js</td><td>TokenReseteo</td><td>tokens_reseteo</td><td>Tokens para reseteo de contrasena</td></tr>
+    <tr><td>RefreshToken.js</td><td>RefreshToken</td><td>refresh_tokens</td><td>Sesiones persistentes</td></tr>
+    <tr><td>PreferenciaUsuario.js</td><td>PreferenciaUsuario</td><td>preferencias_usuario</td><td>Preferencias 1:1 por usuario</td></tr>
+    <tr><td>LogAuditoria.js</td><td>LogAuditoria</td><td>logs_auditoria</td><td>Auditoria de documentos</td></tr>
+    <tr><td>Catalogo.js</td><td>Catalogo</td><td>catalogos</td><td>Catalogos dinamicos del sistema</td></tr>
+    <tr><td>NotaAdjunto.js</td><td>NotaAdjunto</td><td>notas_adjuntos</td><td>Adjuntos de notas internas</td></tr>
+    <tr><td>NotaHistorial.js</td><td>NotaHistorial</td><td>notas_historial</td><td>Historial de ediciones de notas</td></tr>
+    <tr><td>index.js (inline)</td><td>Documento</td><td>documentos</td><td>CV, DNI, CUD adjuntos al perfil</td></tr>
+    <tr><td>index.js (inline)</td><td>Notificacion</td><td>notificaciones</td><td>Notificaciones entre usuarios</td></tr>
+    <tr><td>index.js (inline)</td><td>NotaInterna</td><td>notas_internas</td><td>Notas internas del gestor sobre un perfil</td></tr>
+  </tbody>
+</table>
+
+<h3>Ejemplo de definicion de modelo</h3>
+<span class="file-path">src/models/Usuario.js</span>
+<pre>
+const Usuario = sequelize.define('Usuario', {
+  id:       { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  dni:      { type: DataTypes.STRING(20), allowNull: false, unique: true },
+  email:    { type: DataTypes.STRING(100), allowNull: false, unique: true },
+  password: { type: DataTypes.STRING(255), allowNull: false },
+  rol:      { type: DataTypes.ENUM('Candidato','Gestor','Coordinador','GestorTecnico','Administrador'),
+              defaultValue: 'Candidato' },
+  activo:   { type: DataTypes.BOOLEAN, defaultValue: true },
+}, {
+  tableName: 'usuarios',
+  timestamps: true,
+  createdAt: 'fecha_registro',
+  updatedAt: false,
+});
+</pre>
+
+<h3>Asociaciones entre modelos</h3>
+<span class="file-path">src/models/index.js</span>
+
+<table>
+  <thead>
+    <tr><th>Relacion</th><th>Desde</th><th>Hacia</th><th>FK en tabla</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1:1</td><td>Usuario</td><td>CandidatoPerfil</td><td>candidatos_perfil.usuario_id</td></tr>
+    <tr><td>1:N</td><td>CandidatoPerfil</td><td>Documento</td><td>documentos.perfil_id</td></tr>
+    <tr><td>1:N</td><td>Usuario</td><td>Notificacion</td><td>notificaciones.usuario_id</td></tr>
+    <tr><td>1:N</td><td>CandidatoPerfil</td><td>NotaInterna</td><td>notas_internas.perfil_id</td></tr>
+    <tr><td>1:N</td><td>NotaInterna</td><td>NotaAdjunto</td><td>notas_adjuntos.nota_id</td></tr>
+    <tr><td>1:N</td><td>NotaInterna</td><td>NotaHistorial</td><td>notas_historial.nota_id</td></tr>
+    <tr><td>M:N</td><td>Usuario</td><td>Rol</td><td>usuarios_roles (pivote)</td></tr>
+    <tr><td>1:1</td><td>Usuario</td><td>PreferenciaUsuario</td><td>preferencias_usuario.usuario_id</td></tr>
+    <tr><td>1:N</td><td>Usuario</td><td>RefreshToken</td><td>refresh_tokens.usuario_id</td></tr>
+    <tr><td>1:N</td><td>Documento</td><td>LogAuditoria</td><td>logs_auditoria.documento_id</td></tr>
+    <tr><td>1:N</td><td>Usuario</td><td>TokenReseteo</td><td>tokens_reseteo.usuario_id</td></tr>
+  </tbody>
+</table>
+
+<p>
+  El <code>sync()</code> respeta <code>underscored: true</code>, por lo que las foreign keys
+  se generan como <code>usuario_id</code>, <code>perfil_id</code>, etc.
+</p>
+
+<h2>Etapa 2 &mdash; Migraciones con Umzug</h2>
+
+<p>
+  Despues del <code>sync()</code>, se ejecutan las migraciones versionadas con
+  <strong>Umzug</strong>. Esto permite cambios que <code>sync()</code> solo no puede
+  manejar: agregar columnas a tablas existentes, insertar datos iniciales (seeds), etc.
+</p>
+
+<h3>Configuracion de Umzug</h3>
+<span class="file-path">src/config/umzug.js</span>
+<pre>
+const umzug = new Umzug({
+  migrations: {
+    glob: path.join(__dirname, '..', 'migrations', '*.js'),
+  },
+  context: sequelize.getQueryInterface(),
+  storage: new SequelizeStorage({ sequelize }),
+  logger: console,
+});
+</pre>
+
+<p>Usa <code>SequelizeStorage</code> que guarda en una tabla <code>SequelizeMeta</code> que migraciones ya se ejecutaron.</p>
+
+<h3>Migraciones existentes</h3>
+<span class="file-path">src/migrations/</span>
+
+<table>
+  <thead>
+    <tr><th>Archivo</th><th>Tipo</th><th>Que hace</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>001-extra-columns-candidatos-perfil.js</td>
+      <td><span class="tag tag-mig">SCHEMA</span></td>
+      <td>Agrega columnas observacion_perfil, fecha_observacion, acepta_autorizacion, estado_laboral</td>
+    </tr>
+    <tr>
+      <td>002-usuarios-rol-enum.js</td>
+      <td><span class="tag tag-mig">SCHEMA</span></td>
+      <td>Modifica el enum del rol de usuario</td>
+    </tr>
+    <tr>
+      <td>003-tiene-trabajo-enum.js</td>
+      <td><span class="tag tag-mig">SCHEMA</span></td>
+      <td>Modifica el enum de campo laboral</td>
+    </tr>
+    <tr>
+      <td>004-seed-roles.js</td>
+      <td><span class="tag tag-mig">SEED</span></td>
+      <td>Inserta los roles iniciales del sistema</td>
+    </tr>
+    <tr>
+      <td>005-seed-configuracion-sistema.js</td>
+      <td><span class="tag tag-mig">SEED</span></td>
+      <td>Inserta la configuracion inicial del sistema</td>
+    </tr>
+    <tr>
+      <td>006-migrate-usuario-roles.js</td>
+      <td><span class="tag tag-mig">DATA</span></td>
+      <td>Migra roles de usuarios al modelo multi-rol</td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>Ejemplo de migracion</h3>
+<span class="file-path">src/migrations/001-extra-columns-candidatos-perfil.js</span>
+<pre>
+module.exports = {
+  up: async ({ queryInterface }) => {
+    const tableInfo = await queryInterface.describeTable('candidatos_perfil');
+    const columnsToAdd = [
+      { name: 'observacion_perfil', type: DataTypes.TEXT },
+      { name: 'fecha_observacion',  type: DataTypes.DATE },
+      { name: 'estado_laboral',
+        type: DataTypes.ENUM('No especifica', 'En busqueda laboral', 'Contratado', 'Freelance'),
+        defaultValue: 'No especifica' },
+    ];
+    for (const col of columnsToAdd) {
+      if (!tableInfo[col.name]) {
+        await queryInterface.addColumn('candidatos_perfil', col.name, { type: col.type });
+      }
+    }
+  },
+  down: async ({ queryInterface }) => {
+    const cols = ['estado_laboral', 'acepta_autorizacion', 'fecha_observacion', 'observacion_perfil'];
+    for (const col of cols) {
+      try { await queryInterface.removeColumn('candidatos_perfil', col); }
+      catch { }
+    }
+  },
+};
+</pre>
+
+<hr>
+
+<h2>Esquema completo de tablas</h2>
+
+<table>
+  <thead>
+    <tr><th>Tabla</th><th>Origen</th><th>Descripcion</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>usuarios</td><td><span class="tag tag-sync">SYNC</span></td><td>Usuarios del sistema</td></tr>
+    <tr><td>candidatos_perfil</td><td><span class="tag tag-sync">SYNC</span></td><td>Perfil extendido de cada candidato</td></tr>
+    <tr><td>roles</td><td><span class="tag tag-sync">SYNC</span> + <span class="tag tag-mig">SEED</span></td><td>Roles - la semilla inserta los valores iniciales</td></tr>
+    <tr><td>usuarios_roles</td><td><span class="tag tag-sync">SYNC</span></td><td>Tabla pivote M:N Usuario &harr; Rol</td></tr>
+    <tr><td>documentos</td><td><span class="tag tag-sync">SYNC</span></td><td>Documentos adjuntos (CV, DNI, CUD)</td></tr>
+    <tr><td>notificaciones</td><td><span class="tag tag-sync">SYNC</span></td><td>Notificaciones internas</td></tr>
+    <tr><td>notas_internas</td><td><span class="tag tag-sync">SYNC</span></td><td>Notas internas de gestores sobre perfiles</td></tr>
+    <tr><td>notas_adjuntos</td><td><span class="tag tag-sync">SYNC</span></td><td>Archivos adjuntos a notas internas</td></tr>
+    <tr><td>notas_historial</td><td><span class="tag tag-sync">SYNC</span></td><td>Registro de ediciones de notas</td></tr>
+    <tr><td>catalogos</td><td><span class="tag tag-sync">SYNC</span></td><td>Catalogos dinamicos del sistema</td></tr>
+    <tr><td>preferencias_usuario</td><td><span class="tag tag-sync">SYNC</span></td><td>Preferencias por usuario (1:1)</td></tr>
+    <tr><td>logs_auditoria</td><td><span class="tag tag-sync">SYNC</span></td><td>Auditoria de documentos</td></tr>
+    <tr><td>configuraciones_sistema</td><td><span class="tag tag-sync">SYNC</span> + <span class="tag tag-mig">SEED</span></td><td>Configuracion global clave-valor</td></tr>
+    <tr><td>alertas_tecnicas</td><td><span class="tag tag-sync">SYNC</span></td><td>Alertas tecnicas del sistema</td></tr>
+    <tr><td>tokens_reseteo</td><td><span class="tag tag-sync">SYNC</span></td><td>Tokens para reseteo de contrasena</td></tr>
+    <tr><td>refresh_tokens</td><td><span class="tag tag-sync">SYNC</span></td><td>Tokens para sesiones persistentes</td></tr>
+    <tr><td>SequelizeMeta</td><td><span class="tag tag-mig">MIG</span></td><td>Tabla interna de Umzug que registra migraciones ejecutadas</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<h2>Sync vs Migrations &mdash; Cuando usar cada uno</h2>
+
+<table>
+  <thead>
+    <tr><th></th><th>sequelize.sync()</th><th>Umzug (migraciones)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>Que crea</strong></td><td>Tablas enteras desde modelos</td><td>Columnas, indices, datos, cambios especificos</td></tr>
+    <tr><td><strong>Idempotente</strong></td><td>Si &mdash; SKIP IF NOT EXISTS</td><td>Si &mdash; cada migracion corre una sola vez</td></tr>
+    <tr><td><strong>Versionado</strong></td><td>No &mdash; refleja el modelo actual</td><td>Si &mdash; cada migracion es un commit reversible</td></tr>
+    <tr><td><strong>Rollback</strong></td><td>No aplica</td><td>Si &mdash; umzug.down()</td></tr>
+    <tr><td><strong>Seed data</strong></td><td>No recomendado</td><td>Si &mdash; migraciones de tipo seed</td></tr>
+    <tr><td><strong>Ideal para</strong></td><td>Desarrollo, prototipado, tablas nuevas</td><td>Produccion, cambios en esquemas existentes</td></tr>
+  </tbody>
+</table>
+
+</div>
+</body>
+</html>
