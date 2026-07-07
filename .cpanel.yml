@@ -1,6 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/agoraargentina/repositories/agora-api
+    - export DEPLOYPATH=/home/agoraargentina/api.agoraargentina.ar
     - /bin/cp -R * $DEPLOYPATH
-    # Force update: 02-06-2026
+    - cd $DEPLOYPATH
+    - npm install --omit=dev
