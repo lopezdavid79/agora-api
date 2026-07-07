@@ -63,12 +63,14 @@ app.get('/api/test-db', async (req, res) => {
       'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?',
       { replacements: [process.env.DB_NAME] }
     );
+    const [roles] = await sequelize.query('SELECT id, nombre FROM roles ORDER BY id');
     res.json({
       status: 'ok',
       db: process.env.DB_NAME,
       host: process.env.DB_HOST || 'localhost',
       suma: result[0].suma,
       tablas: tablas[0].map(t => Object.values(t)[0]),
+      roles,
     });
   } catch (err) {
     res.status(500).json({ status: 'error', message: err.message, code: err.code });
