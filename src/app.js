@@ -41,6 +41,15 @@ app.use('/api/gestor',         require('./routes/gestor.routes'));
 app.use('/api/preferencias',   require('./routes/preferencias.routes'));
 app.use('/api/admin',          require('./routes/admin.routes'));
 
+// ── Raíz ──────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({
+    mensaje: 'Bienvenido a la API de Ágora Argentina',
+    estado: 'Online',
+    fecha: new Date(),
+  });
+});
+
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
