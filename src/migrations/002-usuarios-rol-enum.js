@@ -6,7 +6,7 @@ module.exports = {
   up: async ({ sequelize }) => {
     await sequelize.query(`
       ALTER TABLE usuarios
-      MODIFY COLUMN rol ENUM('Candidato','Gestor','Coordinador','GestorTecnico','Administrador')
+      MODIFY COLUMN rol ENUM('Candidato','Gestor','Coordinador','GestorTecnico','Administrador','Instructor')
       NOT NULL DEFAULT 'Candidato'
     `);
   },
@@ -16,6 +16,7 @@ module.exports = {
       ALTER TABLE usuarios
       MODIFY COLUMN rol ENUM('Candidato','Gestor','Coordinador','Administrador')
       NOT NULL DEFAULT 'Candidato'
+      /* Nota: Instructor no se revierte porque no existía cuando se creó esta migración */
     `);
   },
 };

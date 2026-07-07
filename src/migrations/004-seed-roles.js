@@ -5,7 +5,7 @@ module.exports = {
   up: async ({ sequelize }) => {
     await sequelize.query(`
       INSERT IGNORE INTO roles (nombre)
-      VALUES ('Candidato'), ('Gestor'), ('Coordinador'), ('GestorTecnico'), ('Administrador')
+      VALUES ('Candidato'), ('Gestor'), ('Coordinador'), ('GestorTecnico'), ('Administrador'), ('Instructor')
     `);
   },
 
