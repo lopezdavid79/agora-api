@@ -484,16 +484,23 @@ async function main() {
     }
   }
 
-  // 6. Cerrar conexión
+  // 6. Recalcular completitud de perfiles
+  console.log('');
+  console.log('  ── Recalculando completitud ──');
+  const actualizados = await recalcularCompletitud(connection);
+  console.log(`  ✓ ${actualizados} perfiles actualizados`);
+
+  // 7. Cerrar conexión
   await connection.end();
 
-  // 7. Resumen
+  // 8. Resumen
   console.log('');
   console.log('═'.repeat(65));
   console.log(`  Resultado:`);
   console.log(`    ✓ ${insertados} registros importados/actualizados`);
+  console.log(`    ✓ ${actualizados} perfiles con completitud recalculada`);
   console.log(`    ⚠ ${omitidos} omitidos (errores o datos inválidos)`);
-    console.log(`    📁 Total en CSV: ${lineas.length} filas`);
+  console.log(`    📁 Total en CSV: ${lineas.length} filas`);
 
   if (errores.length > 0) {
     console.log('');
@@ -514,6 +521,41 @@ async function main() {
   console.log('');
 
   process.exit(omitidos === 0 ? 0 : 1);
+}
+
+// ── Cálculo de completitud ────────────────────────────────────
+
+const GRUPOS_COMPLETITUD = [
+  { nombre: 'Datos personales', peso: 25, campos: ['nombre', 'apellido', 'celular', 'fecha_nacimiento', 'genero', 'pais_residencia', 'nacionalidad', 'jurisdiccion', 'ciudad'] },
+  { nombre: 'Discapacidad', peso: 15, campos: ['discapacidad_visual', 'condicion_visual', 'tiene_cud', 'beneficio_social'] },
+  { nombre: 'Educación', peso: 15, campos: ['tipo_escolaridad', 'nivel_educativo', 'carrera_estudios'] },
+  { nombre: 'Autonomía y tecnología', peso: 15, campos: ['braille', 'autonomia', 'apoyos_desplazamiento', 'vinculo_tecnologia', 'herramientas_tecnologicas'] },
+  { nombre: 'Idiomas y emprendimiento', peso: 10, campos: ['idiomas', 'emprendimiento'] },
+  { nombre: 'Formación y empleo', peso: 15, campos: ['busqueda_formacion', 'tipo_formacion_buscada', 'busqueda_empleo', 'tiene_trabajo_actual', 'area_trabajo_actual'] },
+  { nombre: 'Consentimiento', peso: 5, campos: ['acepta_autorizacion'] },
+];
+
+function calcularCompletitud(fila) {
+  let puntaje = 0;
+  for (const grupo of GRUPOS_COMPLETITUD) {
+    const llenos = grupo.campos.filter(c => {
+      const val = fila[c];
+      return val !== null && val !== undefined && String(val).trim() !== '' && String(val).trim() !== '0';
+    }).length;
+    puntaje += (grupo.campos.length > 0 ? llenos / grupo.campos.length : 0) * grupo.peso;
+  }
+  return Math.round(puntaje);
+}
+
+async function recalcularCompletitud(conn) {
+  const [perfiles] = await conn.execute('SELECT * FROM candidatos_perfil');
+  let actualizados = 0;
+  for (const perfil of perfiles) {
+    const puntaje = calcularCompletitud(perfil);
+    await conn.execute('UPDATE candidatos_perfil SET porcentaje_completitud = ? WHERE id = ?', [puntaje, perfil.id]);
+    actualizados++;
+  }
+  return actualizados;
 }
 
 main().catch(err => {
