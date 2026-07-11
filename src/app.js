@@ -65,6 +65,32 @@ app.get('/api/test-bcrypt', async (req, res) => {
   }
 });
 
+// ── Test login flow (temporal) ────────────────────────────────
+app.get('/api/test-login-flow', async (req, res) => {
+  const steps = [];
+  try {
+    steps.push('init');
+    const { Usuario, CandidatoPerfil, Rol, RefreshToken } = require('./models/index');
+    steps.push('models-loaded');
+
+    const bcrypt = require('bcrypt');
+    steps.push('bcrypt-loaded');
+
+    const jwt = require('jsonwebtoken');
+    steps.push('jwt-loaded');
+
+    try { const usuario = await Usuario.findOne({ where: { email: 'test@test.com' } }); steps.push('usuario-query-ok'); } catch (e) { steps.push(`usuario-error: ${e.message}`); }
+    try { const rol = await Rol.findOne(); steps.push('rol-query-ok'); } catch (e) { steps.push(`rol-error: ${e.message}`); }
+    try { const rt = await RefreshToken.findOne(); steps.push('refresh-token-query-ok'); } catch (e) { steps.push(`refresh-error: ${e.message}`); }
+
+    steps.push('jwt-secret-' + (process.env.JWT_SECRET ? 'ok' : 'missing'));
+
+    res.json({ status: 'ok', steps });
+  } catch (err) {
+    res.json({ status: 'error', steps, message: err.message });
+  }
+});
+
 // ── Test DB (temporal) ────────────────────────────────────────
 app.get('/api/test-db', async (req, res) => {
   try {
