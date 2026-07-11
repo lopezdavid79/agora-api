@@ -53,6 +53,18 @@ app.get('/', (req, res) => {
 // ── Health check ──────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
+// ── Test bcrypt (temporal) ────────────────────────────────────
+app.get('/api/test-bcrypt', async (req, res) => {
+  try {
+    const bcrypt = require('bcrypt');
+    const hash = await bcrypt.hash('test123', 10);
+    const match = await bcrypt.compare('test123', hash);
+    res.json({ status: 'ok', bcrypt: 'working', match });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // ── Test DB (temporal) ────────────────────────────────────────
 app.get('/api/test-db', async (req, res) => {
   try {
